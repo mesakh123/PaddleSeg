@@ -22,6 +22,7 @@ from PIL import Image
 from paddleseg.cvlibs import manager
 from paddleseg.transforms import functional
 from paddleseg.utils import logger
+from .custom import RandomCopyMoveTransform,RandomInpaintingTransform
 
 
 @manager.TRANSFORMS.add_component
@@ -1245,3 +1246,36 @@ class AddMultiLabelAuxiliaryCategory:
             data['label'] = np.concatenate([aux_label, data['label']], axis=-1)
 
         return data
+
+
+
+@manager.TRANSFORMS.add_component
+class RandomCopyMove(RandomCopyMoveTransform):
+
+    def __init__(self,prob=0.5):
+        
+        super().__init__(p=prob)
+        self.prob = prob
+        
+    def __call__(self, data):
+        if random.random() < self.prob:
+            data['img'] = self.apply(data['img'])
+            for key in data.get('gt_fields', []):
+                data[key] = self.apply_to_mask(data[key])
+        return data
+
+
+@manager.TRANSFORMS.add_component
+class RandomInpainting(RandomInpaintingTransform):
+
+    def __init__(self,prob=0.5):
+        
+        super().__init__(p=prob)
+        self.prob = prob
+    def __call__(self, data):
+        if random.random() < self.prob:
+            data['img'] = self.apply(data['img'])
+            for key in data.get('gt_fields', []):
+                data[key] = self.apply_to_mask(data[key])
+        return data
+

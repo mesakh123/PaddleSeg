@@ -1,0 +1,89 @@
+
+train_dataset:
+  type: Dataset
+  dataset_root: "../mmsegmentation/data/"
+  train_path: "../mmsegmentation/data/train.txt"
+  num_classes: 2
+  transforms:
+    - type: RandomHorizontalFlip
+    - type: RandomVerticalFlip
+    - type: RandomRotation
+    - type: ResizeStepScaling
+      min_scale_factor: 0.5
+      max_scale_factor: 2.0
+      scale_step_size: 0.25
+    - type: RandomPaddingCrop
+      crop_size: [512, 512]
+    - type: RandomCopyMove
+    - type: RandomInpainting
+    - type: RandomDistort
+      brightness_range: 0.4
+      contrast_range: 0.4
+      saturation_range: 0.4
+    - type: Normalize
+  mode: train
+
+
+val_dataset:
+  type: Dataset
+  dataset_root: "../mmsegmentation/data/"
+  val_path: "../mmsegmentation/data/val.txt"
+  num_classes: 2
+  transforms:
+    - type: ResizeByShort
+      short_size: 512
+    - type: RandomCopyMove
+    - type: RandomInpainting
+    - type: Normalize
+  mode: val
+
+
+
+batch_size: 2
+iters: 160000
+
+model:
+  type: LinearSegmenter
+  num_classes: 2
+  backbone:
+    type: VisionTransformer
+    img_size: 512
+    patch_size: 16
+    embed_dim: 768
+    depth: 12
+    num_heads: 12
+    mlp_ratio: 4
+    qkv_bias: True
+    drop_rate: 0.0
+    drop_path_rate: 0.1
+    final_norm: True
+    pretrained: https://bj.bcebos.com/paddleseg/dygraph/pretrained_models/vit_base_patch16_384_augreg.tar.gz
+
+
+optimizer:
+  type: AdamW
+  beta1: 0.9
+  beta2: 0.999
+  weight_decay: 0.01
+
+lr_scheduler:
+  type: PolynomialDecay
+  learning_rate: 0.00001
+  end_lr: 1.0e-06
+  power: 0.9
+
+loss:
+  types:
+    - type: MixedLoss
+      losses:
+        - type: OhemCrossEntropyLoss
+          min_kept: 65000
+        - type: LovaszSoftmaxLoss
+      coef: [0.8, 0.2]
+  coef: [1]
+
+
+test_config:
+  is_slide: True
+  crop_size: [512, 512]
+  stride: [512, 512]
